@@ -31,12 +31,25 @@ bigrquery::bq_auth()#login with google account associated with physionet account
   !(x %in% table)
 }
 
-setwd("/Users/hsc/Github/GatorAId/Data_MIMIC_IV/")
+setwd("/Users/sichenghao/Documents/GitHub/GatorAId/")
 
 ##### Inclusion First ICU admission, MICU#####
 
-###Static table###
 
+###icd
+
+sql <- "
+SELECT * FROM `physionet-data.mimiciv_3_1_hosp.d_icd_diagnoses`
+"
+bq_data <- bq_project_query(projectid, query = sql)
+
+icd = bq_table_download(bq_data)#
+icd9 = icd%>%filter(icd_version == 9)
+icd10 = icd%>%filter(icd_version == 10)
+
+icd10 = 
+
+###Static table###
 
 sql <- "
 select icu.* ,adm.admission_location,adm.discharge_location,hospital_expire_flag,gender,insurance,pt.dod,ROW_NUMBER() OVER (PARTITION BY icu.hadm_id ORDER BY icu.intime DESC) AS row_number
@@ -55,6 +68,8 @@ nrow(all_icus)
 first_icu = all_icus%>%filter(row_number==1)#65677
 micu = first_icu%>%filter(first_careunit%in%c("Medical Intensive Care Unit (MICU)",
                                               "Medical/Surgical Intensive Care Unit (MICU/SICU)"))
+
+length(unique(micu$stay_id))#32563
 
 sql <- "
 SELECT
@@ -226,3 +241,4 @@ bq_data <- bq_project_query(projectid, query = sql)
 input = bq_table_download(bq_data) # inputevents
 
 input_drug = fread("input_drugs.csv")
+
