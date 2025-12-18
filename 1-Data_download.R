@@ -20,6 +20,8 @@ library(broom)
 library(patchwork)
 library(writexl)
 
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
 #setwd("/Users/sh/SCCM_T5")
 #setwd("/Users/sichenghao/Desktop/Projects/Extubation_Prediction/")
 
@@ -39,6 +41,17 @@ setwd("/Users/sichenghao/Documents/GitHub/GatorAId/")
 ###icd
 
 sql <- "
+SELECT * FROM `physionet-data.mimiciv_3_1_hosp.diagnoses_icd`
+"
+bq_data <- bq_project_query(projectid, query = sql)
+
+diagnoses = bq_table_download(bq_data)#
+diagnoses = diagnoses%>%filter(hadm_id%in%micu$hadm_id)
+diag_icd9 = diagnoses%>%filter(icd_version == 9)
+diag_icd10 = diagnoses%>%filter(icd_version == 10)
+
+
+sql <- "
 SELECT * FROM `physionet-data.mimiciv_3_1_hosp.d_icd_diagnoses`
 "
 bq_data <- bq_project_query(projectid, query = sql)
@@ -47,7 +60,57 @@ icd = bq_table_download(bq_data)#
 icd9 = icd%>%filter(icd_version == 9)
 icd10 = icd%>%filter(icd_version == 10)
 
-icd10 = 
+icd9_exclusion = c("V222", #pregant
+                
+                    "25513",#Bartter Syndrome
+                    "2700",#Fanconi Syndrome
+                    "25514",#Liddle Syndrome
+                   
+                    "5856",# ESRD
+                    "5853", # CKD3-5
+                    "5854",
+                    "5855",
+                    "2680", # Rickets
+                    "2552", #21 hydroxylase deficiency
+                    "N179",# AKI
+                   
+                    "7906", # Platelet count > 1M
+                    "9529",# Acute Spinal Cord Injury/transection
+                    "9520",
+                    "9521",
+                    "9522",
+                    "28860",#High white blood cell counts (>120,000/microL)
+                    "58889" #RTA type4
+)
+
+icd10_exclusion = c("Z331", #pregant
+                    "I151", #gordan syndrome
+                    "E875",
+                    "E2681",#Bartter Syndrome
+                    "E7209",#Fanconi Syndrome
+                    "I151",#Liddle Syndrome
+                    "N158",#Gitelman Syndrome
+                    "N186",# ESRD
+                    "N1830", # CKD3-5
+                    "N184",
+                    "N185",
+                    "N186", # ESRD
+                    "E250", #21 hydroxylase deficiency
+                    "N179",# AKI
+                    "Z992",
+                    "Z4902",
+                    "E7209",#Fanconi Syndrome
+                    "D7583", # Platelet count > 1M
+                    "S14109A",# Acute Spinal Cord Injury
+                    "S24109A",
+                    "S34109A",
+                    "D7282",#High white blood cell counts (>120,000/microL)
+                    "N2589"#RTA type4
+)
+
+icd9_exclusion_pt = diag_icd9%>%filter(icd_code%in%icd9_exclusion)
+icd10_exclusion_pt = diag_icd10%>%filter(icd_code%in%icd10_exclusion)
+
 
 ###Static table###
 
@@ -70,6 +133,12 @@ micu = first_icu%>%filter(first_careunit%in%c("Medical Intensive Care Unit (MICU
                                               "Medical/Surgical Intensive Care Unit (MICU/SICU)"))
 
 length(unique(micu$stay_id))#32563
+
+
+micu_exclude_icd = micu%>%
+  filter(hadm_id%!in%icd9_exclusion_pt$hadm_id)%>%
+  filter(hadm_id%!in%icd10_exclusion_pt$hadm_id)
+  
 
 sql <- "
 SELECT
