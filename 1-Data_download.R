@@ -129,15 +129,15 @@ all_icus = bq_table_download(bq_data)#
 nrow(all_icus)
 
 first_icu = all_icus%>%filter(row_number==1)#65677
-micu = first_icu%>%filter(first_careunit%in%c("Medical Intensive Care Unit (MICU)",
+#micu = first_icu%>%filter(first_careunit%in%c("Medical Intensive Care Unit (MICU)",
                                               "Medical/Surgical Intensive Care Unit (MICU/SICU)"))
 
-length(unique(micu$stay_id))#32563
+#length(unique(micu$stay_id))#32563
 
 
-micu_exclude_icd = micu%>%
+exclude_icd = first_icu%>%
   filter(hadm_id%!in%icd9_exclusion_pt$hadm_id)%>%
-  filter(hadm_id%!in%icd10_exclusion_pt$hadm_id)
+  filter(hadm_id%!in%icd10_exclusion_pt$hadm_id)#74669
   
 
 sql <- "
